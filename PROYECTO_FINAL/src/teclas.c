@@ -1,0 +1,77 @@
+
+#include "os.h"               /* <= operating system header */
+#include "ciaaPOSIX_stdio.h"  /* <= device handler header */
+#include "ciaaPOSIX_string.h" /* <= string header */
+#include "ciaak.h"            /* <= ciaa kernel header */
+#include "teclas.h"           /* <= own header */
+
+int main(void)
+{
+
+   StartOS(AppMode1);
+
+   return 0;
+}
+
+void ErrorHook(void)
+{
+   ciaaPOSIX_printf("ErrorHook was called\n");
+   ciaaPOSIX_printf("Service: %d, P1: %d, P2: %d, P3: %d, RET: %d\n", OSErrorGetServiceId(), OSErrorGetParam1(), OSErrorGetParam2(), OSErrorGetParam3(), OSErrorGetRet());
+   ShutdownOS(0);
+}
+
+
+TASK(InitTask)
+{
+   ciaak_start();
+
+   ciaaPOSIX_printf("Init Task...\n");
+
+   leds_init();
+
+   teclado_init();
+
+   initMyVariables();
+
+   TerminateTask();
+
+}
+
+
+TASK(LedsTask)
+{
+   uint8_t outputs;
+
+   ciaaPOSIX_read(fd_out, &outputs, 1);
+
+   if (tiltCounter >= tiltFrec)
+   {
+      outputs ^= tiltLed;
+      ciaaPOSIX_write(fd_out, &outputs, 1);
+
+      tiltCounter = 0;
+   }
+   else
+   {
+      tiltCounter += 10;
+   }
+
+   TerminateTask();
+}
+
+
+
+TASK(TecladoTask)
+{
+  
+   teclado_task();
+
+   teclas = teclado_getFlancos();
+
+   procesarTeclas(teclas);
+
+   TerminateTask();
+}
+
+
+
